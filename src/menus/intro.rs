@@ -117,9 +117,9 @@ impl<T: Widget> Widget for Intro<T> {
             let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
             let t = 1.0 - (1.0 - t).powi(4);
 
-            let diameter = 40.0;
-            let padding = 30.0;
-            let stroke_width = 6.0;
+            let diameter = 50.0;
+            let padding = 40.0;
+            let stroke_width = 8.0;
             let t_sweep = 50.0;
 
             let oval = Rect {
