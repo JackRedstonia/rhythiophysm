@@ -3,7 +3,7 @@ mod menus;
 use stacks::framework::{
     widgets::{
         audio::Audio,
-        layout::{CenterContainer, FullscreenContainer, SizeFillContainer},
+        layout::{FullscreenContainer, SizeFillContainer},
         shapes::Rect,
     },
     Framework,
@@ -22,7 +22,12 @@ fn main() {
                 .expand_height(),
             Paint::new_color4f(0.3, 0.3, 0.3, 1.0),
         );
-        let root = Intro::new(root, LayoutSize::min(1280.0, 720.0).expand_width().expand_height());
+        let root = Intro::new(
+            root,
+            LayoutSize::min(1280.0, 720.0)
+                .expand_width()
+                .expand_height(),
+        );
         // Set up fullscreening and auto-resizing
         let root = FullscreenContainer::new(SizeFillContainer::new(root));
         // Set up audio

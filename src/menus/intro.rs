@@ -1,6 +1,8 @@
-use stacks::prelude::*;
-use skia::{scalar, Size, Canvas};
+use std::time::Duration;
+
 use game::{InputEvent, State};
+use skia::{scalar, Canvas, Size, Rect, Paint};
+use stacks::prelude::*;
 
 enum IntroState {
     Intro,
@@ -29,56 +31,54 @@ impl IntroState {
 pub struct Intro<T: Widget> {
     state: IntroState,
     child: Wrap<T>,
-    size: LayoutSize,
+    layout_size: LayoutSize,
+    size: Size,
+    start_time: Option<Duration>,
 }
 
 impl<T: Widget> Intro<T> {
+    const ANIMATION_DURATION: scalar = 1.0;
+
     pub fn new(child: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
         Self {
             state: IntroState::Intro,
             child: child.into(),
-            size,
+            layout_size: size,
+            size: Size::default(),
+            start_time: None,
         }
     }
 }
 
 impl<T: Widget> Widget for Intro<T> {
-    fn load(&mut self, wrap: &mut WrapState, stack: &mut ResourceStack) {
+    fn load(&mut self, _wrap: &mut WrapState, stack: &mut ResourceStack) {
         self.child.load(stack);
     }
 
-    fn update(&mut self, wrap: &mut WrapState) {
+    fn update(&mut self, _wrap: &mut WrapState) {
         if self.state.should_process_child().is_some() {
             self.child.update();
         }
     }
 
-    fn input(&mut self, wrap: &mut WrapState, event: &InputEvent) -> bool {
-        let child = self.state.should_process_child().is_some() && self.child.input(event);
-        let myself = self.state.should_process_self().is_some() && {
-            // TODO: this is just a placeholder to trigger transition to child
-            if let InputEvent::KeyDown(Keycode::Semicolon) = event {
-                self.state = IntroState::Transitioning(0.0);
-                true
-            } else {
-                false
-            }
-        };
-
-        myself || child
+    fn input(&mut self, _wrap: &mut WrapState, event: &InputEvent) -> bool {
+        self.state.should_process_child().is_some() && self.child.input(event)
     }
 
-    fn size(&mut self, wrap: &mut WrapState) -> (LayoutSize, bool) {
-        let child_changed = self.state.should_process_child().is_some() && self.child.size().1;
-        let changed = child_changed || false;
-        (self.size, changed)
+    fn size(&mut self, _wrap: &mut WrapState) -> (LayoutSize, bool) {
+        if self.state.should_process_child().is_some() {
+            self.child.size()
+        } else {
+            (self.layout_size, false)
+        }
     }
 
-    fn set_size(&mut self, wrap: &mut WrapState, size: Size) {
+    fn set_size(&mut self, _wrap: &mut WrapState, size: Size) {
+        self.size = size;
         self.child.set_size(size);
     }
 
-    fn draw(&mut self, wrap: &mut WrapState, canvas: &mut Canvas) {
+    fn draw(&mut self, _wrap: &mut WrapState, canvas: &mut Canvas) {
         match &mut self.state {
             IntroState::Transitioning(alpha) => {
                 let factor = State::last_update_time_draw().as_secs_f32();
@@ -87,20 +87,53 @@ impl<T: Widget> Widget for Intro<T> {
                     self.state = IntroState::Child;
                 }
             }
+            IntroState::Child => {
+                self.child.draw(canvas);
+                return;
+            }
             _ => {}
+        }
+
+        if let Some(_s) = self.state.should_process_self() {
+            let t = match self.start_time {
+                Some(s) => (State::elapsed_draw() - s).as_secs_f32(),
+                None => {
+                    self.start_time = Some(State::elapsed_draw());
+                    0.0
+                }
+            };
+
+            let t = if t >= Self::ANIMATION_DURATION {
+                if matches!(self.state, IntroState::Intro) {
+                    self.state = IntroState::Transitioning(0.0);
+                }
+                Self::ANIMATION_DURATION
+            } else {
+                t
+            } / Self::ANIMATION_DURATION;
+
+            let t = 1.0 - (1.0 - t).powi(4);
+
+            let diameter = 40.0;
+            let padding = 30.0;
+            let stroke_width = 6.0;
+            let t_sweep = 50.0;
+
+            let oval = Rect {
+                left: padding,
+                top: self.size.height - diameter - padding,
+                right: padding + diameter,
+                bottom: self.size.height - padding,
+            };
+            let paint = Paint::new_color4f(1.0, 1.0, 1.0, 1.0).stroke().with_stroke_width(stroke_width).anti_alias();
+            let start = t * t_sweep;
+            let sweep = 360.0 - start * 2.0;
+            canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
         }
 
         if let Some(s) = self.state.should_process_child() {
             let i = canvas.save_layer_alpha(None, (s * 255.0) as _);
             self.child.draw(canvas);
-            canvas.restore_to_count(i);
-        }
-
-        if let Some(s) = self.state.should_process_self() {
-            let i = canvas.save_layer_alpha(None, (s * 255.0) as _);
-            {
-                // TODO: draw intro here
-            }
             canvas.restore_to_count(i);
         }
     }

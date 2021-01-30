@@ -1,5 +1,5 @@
-mod main_menu;
 mod intro;
+mod main_menu;
 
-pub use main_menu::MainMenu;
 pub use intro::Intro;
+pub use main_menu::MainMenu;
