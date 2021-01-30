@@ -128,7 +128,8 @@ impl<T: Widget> Widget for Intro<T> {
                 right: padding + diameter,
                 bottom: self.size.height - padding,
             };
-            let paint = Paint::new_color4f(1.0, 1.0, 1.0, 1.0).stroke().with_stroke_width(stroke_width).anti_alias();
+            let opacity = (t * 1.4).min(1.0);
+            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity).stroke().with_stroke_width(stroke_width).anti_alias();
             let start = t * t_sweep;
             let sweep = 360.0 - start * 2.0;
             canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
