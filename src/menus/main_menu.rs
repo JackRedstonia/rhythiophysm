@@ -1,5 +1,3 @@
-use game::InputEvent;
-use skia::{scalar, Canvas, Size};
 use stacks::prelude::*;
 
 pub struct MainMenu {
@@ -13,23 +11,23 @@ enum MainMenuState {
 }
 
 impl Widget for MainMenu {
-    fn load(&mut self, _wrap: &mut WrapState, _stack: &mut ResourceStack) {}
+    fn load(&mut self, _wrap: &mut WidgetState, _stack: &mut ResourceStack) {}
 
-    fn update(&mut self, _wrap: &mut WrapState) {}
+    fn update(&mut self, _wrap: &mut WidgetState) {}
 
-    fn input(&mut self, _wrap: &mut WrapState, _event: &InputEvent) -> bool {
+    fn input(&mut self, _wrap: &mut WidgetState, _event: &InputEvent) -> bool {
         false
     }
 
-    fn hover(&mut self, _wrap: &mut WrapState) {}
+    fn hover(&mut self, _wrap: &mut WidgetState) {}
 
-    fn hover_lost(&mut self, _wrap: &mut WrapState) {}
+    fn hover_lost(&mut self, _wrap: &mut WidgetState) {}
 
-    fn size(&mut self, _wrap: &mut WrapState) -> (LayoutSize, bool) {
+    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
         (LayoutSize::ZERO, false)
     }
 
-    fn set_size(&mut self, _wrap: &mut WrapState, _size: Size) {}
+    fn set_size(&mut self, _wrap: &mut WidgetState, _size: Size) {}
 
-    fn draw(&mut self, _wrap: &mut WrapState, _canvas: &mut Canvas) {}
+    fn draw(&mut self, _wrap: &mut WidgetState, _canvas: &mut Canvas) {}
 }

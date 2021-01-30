@@ -4,7 +4,7 @@ use stacks::framework::{
     widgets::{
         audio::Audio,
         layout::{FullscreenContainer, SizeFillContainer},
-        shapes::Rect,
+        shapes::Rectangle,
     },
     Framework,
 };
@@ -16,7 +16,7 @@ use menus::Intro;
 
 fn main() {
     Framework::run("Rhythiophysm", || {
-        let root = Rect::new(
+        let root = Rectangle::new(
             LayoutSize::min(1280.0, 720.0)
                 .expand_width()
                 .expand_height(),

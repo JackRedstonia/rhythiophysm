@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use game::{InputEvent, State};
-use skia::{scalar, Canvas, Size, Rect, Paint};
 use stacks::prelude::*;
 
 enum IntroState {
@@ -51,21 +49,21 @@ impl<T: Widget> Intro<T> {
 }
 
 impl<T: Widget> Widget for Intro<T> {
-    fn load(&mut self, _wrap: &mut WrapState, stack: &mut ResourceStack) {
+    fn load(&mut self, _wrap: &mut WidgetState, stack: &mut ResourceStack) {
         self.child.load(stack);
     }
 
-    fn update(&mut self, _wrap: &mut WrapState) {
+    fn update(&mut self, _wrap: &mut WidgetState) {
         if self.state.should_process_child().is_some() {
             self.child.update();
         }
     }
 
-    fn input(&mut self, _wrap: &mut WrapState, event: &InputEvent) -> bool {
+    fn input(&mut self, _wrap: &mut WidgetState, event: &InputEvent) -> bool {
         self.state.should_process_child().is_some() && self.child.input(event)
     }
 
-    fn size(&mut self, _wrap: &mut WrapState) -> (LayoutSize, bool) {
+    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
         if self.state.should_process_child().is_some() {
             self.child.size()
         } else {
@@ -73,12 +71,12 @@ impl<T: Widget> Widget for Intro<T> {
         }
     }
 
-    fn set_size(&mut self, _wrap: &mut WrapState, size: Size) {
+    fn set_size(&mut self, _wrap: &mut WidgetState, size: Size) {
         self.size = size;
         self.child.set_size(size);
     }
 
-    fn draw(&mut self, _wrap: &mut WrapState, canvas: &mut Canvas) {
+    fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
         match &mut self.state {
             IntroState::Transitioning(alpha) => {
                 let factor = State::last_update_time_draw().as_secs_f32();
@@ -129,7 +127,10 @@ impl<T: Widget> Widget for Intro<T> {
                 bottom: self.size.height - padding,
             };
             let opacity = (t * 1.4).min(1.0);
-            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity).stroke().with_stroke_width(stroke_width).anti_alias();
+            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity)
+                .stroke()
+                .with_stroke_width(stroke_width)
+                .anti_alias();
             let start = t * t_sweep;
             let sweep = 360.0 - start * 2.0;
             canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
