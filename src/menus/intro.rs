@@ -103,15 +103,18 @@ impl<T: Widget> Widget for Intro<T> {
                 }
             };
 
-            let t = if t >= Self::ANIMATION_DURATION {
+            let backoff = 0.3;
+
+            let t = if t >= Self::ANIMATION_DURATION + backoff {
                 if matches!(self.state, IntroState::Intro) {
                     self.state = IntroState::Transitioning(0.0);
                 }
-                Self::ANIMATION_DURATION
+                Self::ANIMATION_DURATION + backoff
             } else {
                 t
-            } / Self::ANIMATION_DURATION;
+            };
 
+            let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
             let t = 1.0 - (1.0 - t).powi(4);
 
             let diameter = 40.0;
