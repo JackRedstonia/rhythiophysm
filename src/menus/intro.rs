@@ -2,6 +2,11 @@ use std::time::Duration;
 
 use stacks::prelude::*;
 
+use skia::utils::parse_path::from_svg;
+use skia::Path;
+
+const STACKS_LOGO: &str = include_str!("../../resources/stacks.svg");
+
 enum IntroState {
     Intro,
     Transitioning(scalar),
@@ -32,18 +37,24 @@ pub struct Intro<T: Widget> {
     layout_size: LayoutSize,
     size: Size,
     start_time: Option<Duration>,
+    logo: Path,
+    logo_height: scalar,
 }
 
 impl<T: Widget> Intro<T> {
     const ANIMATION_DURATION: scalar = 1.0;
 
     pub fn new(child: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
+        let logo = from_svg(STACKS_LOGO).expect("Failed to parse SVG file for Stacks logo");
+        let logo_height = logo.compute_tight_bounds().height();
         Self {
             state: IntroState::Intro,
             child: child.into(),
             layout_size: size,
             size: Size::default(),
             start_time: None,
+            logo,
+            logo_height,
         }
     }
 }
@@ -115,25 +126,41 @@ impl<T: Widget> Widget for Intro<T> {
             let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
             let t = 1.0 - (1.0 - t).powi(4);
 
+            let opacity = (t * 1.4).min(1.0);
+
             let diameter = 50.0;
             let padding = 40.0;
-            let stroke_width = 8.0;
+            let stroke_width = 6.5;
             let t_sweep = 50.0;
 
+            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity).anti_alias();
+
+            let half_width = stroke_width / 2.0;
             let oval = Rect {
-                left: padding,
-                top: self.size.height - diameter - padding,
-                right: padding + diameter,
-                bottom: self.size.height - padding,
+                left: padding + half_width,
+                top: self.size.height - diameter - padding + half_width,
+                right: padding + diameter - half_width,
+                bottom: self.size.height - padding - half_width,
             };
-            let opacity = (t * 1.4).min(1.0);
-            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity)
-                .stroke()
-                .with_stroke_width(stroke_width)
-                .anti_alias();
             let start = t * t_sweep;
             let sweep = 360.0 - start * 2.0;
-            canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
+            canvas.draw_arc(
+                oval,
+                start - 90.0,
+                sweep,
+                false,
+                &paint.clone().stroke().with_stroke_width(stroke_width),
+            );
+
+            let scaling = diameter / self.logo_height;
+            canvas.save();
+            canvas.translate((
+                padding * 2.0 + diameter,
+                self.size.height - diameter - padding,
+            ));
+            canvas.scale((scaling, scaling));
+            canvas.draw_path(&self.logo, &paint);
+            canvas.restore();
         }
 
         if let Some(s) = self.state.should_process_child() {
