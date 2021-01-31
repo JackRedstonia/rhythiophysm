@@ -175,7 +175,7 @@ impl<T: Widget> Widget for Intro<T> {
 
             let t = if t >= Self::ANIMATION_DURATION + backoff {
                 if matches!(self.state, IntroState::Intro) {
-                    // self.state = IntroState::Transitioning(0.0);
+                    self.state = IntroState::Transitioning(0.0);
                 }
                 Self::ANIMATION_DURATION + backoff
             } else {
