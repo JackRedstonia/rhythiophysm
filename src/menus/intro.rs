@@ -106,9 +106,9 @@ impl<T: Widget> Intro<T> {
         canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
     }
 
-    fn draw_text(&self, t: scalar, canvas: &mut Canvas) {
+    fn draw_text(&self, te: scalar, canvas: &mut Canvas) {
         let scaling = Self::DIAMETER / self.text_height;
-        let paint = Paint::new_color4f(1.0, 1.0, 1.0, t).anti_alias();
+        let paint = Paint::new_color4f(1.0, 1.0, 1.0, te).anti_alias();
         canvas.save();
         canvas.translate((
             Self::PADDING * 2.0 + Self::DIAMETER,
@@ -178,23 +178,25 @@ impl<T: Widget> Widget for Intro<T> {
                 }
             };
 
-            let backoff = 0.3;
+            let t_prepad = 0.3;
+            let t_postpad = 0.5;
+            let actual_duration = Self::ANIMATION_DURATION + t_prepad + t_postpad;
 
-            let t = if t >= Self::ANIMATION_DURATION + backoff {
+            let t = if t >= actual_duration {
                 if matches!(self.state, IntroState::Intro) {
                     self.state = IntroState::Transitioning(0.0);
                     self.just_changed = true;
                 }
-                Self::ANIMATION_DURATION + backoff
+                actual_duration
             } else {
                 t
             };
 
-            let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
+            let t = ((t - t_prepad) / Self::ANIMATION_DURATION).max(0.0).min(1.0);
             let te = t.ease_out_quart();
 
             self.draw_circles(t, te, canvas);
-            self.draw_text(t, canvas);
+            self.draw_text(te, canvas);
         }
 
         if let Some(s) = self.state.should_process_child() {
