@@ -36,6 +36,7 @@ pub struct Intro<T: Widget> {
     child: Wrap<T>,
     layout_size: LayoutSize,
     size: Size,
+    just_changed: bool,
     start_time: Option<Duration>,
     logo: Path,
     logo_height: scalar,
@@ -58,6 +59,7 @@ impl<T: Widget> Intro<T> {
             child: child.into(),
             layout_size: size,
             size: Size::default(),
+            just_changed: false,
             start_time: None,
             logo,
             logo_height,
@@ -134,10 +136,15 @@ impl<T: Widget> Widget for Intro<T> {
     }
 
     fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
+        let b = self.just_changed;
+        if b {
+            self.just_changed = false;
+        }
         if self.state.should_process_child().is_some() {
-            self.child.size()
+            let (size, changed) = self.child.size();
+            (size, changed || b)
         } else {
-            (self.layout_size, false)
+            (self.layout_size, b)
         }
     }
 
@@ -176,6 +183,7 @@ impl<T: Widget> Widget for Intro<T> {
             let t = if t >= Self::ANIMATION_DURATION + backoff {
                 if matches!(self.state, IntroState::Intro) {
                     self.state = IntroState::Transitioning(0.0);
+                    self.just_changed = true;
                 }
                 Self::ANIMATION_DURATION + backoff
             } else {
