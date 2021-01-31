@@ -2,48 +2,72 @@ use std::time::Duration;
 
 use stacks::prelude::*;
 
+use stacks::framework::widgets::layout::{TimeReport, AB};
+
 use skia::utils::parse_path::from_svg;
 use skia::Path;
 
 const STACKS_TEXT: &str = include_str!("../../resources/stacks.svg");
 
-enum IntroState {
-    Intro,
-    Transitioning(scalar),
-    Child,
-}
-
-impl IntroState {
-    fn should_process_self(&self) -> Option<scalar> {
-        match self {
-            IntroState::Intro => Some(1.0),
-            IntroState::Transitioning(s) => Some(1.0 - *s),
-            IntroState::Child => None,
-        }
-    }
-
-    fn should_process_child(&self) -> Option<scalar> {
-        match self {
-            IntroState::Intro => None,
-            IntroState::Transitioning(s) => Some(*s),
-            IntroState::Child => Some(1.0),
-        }
-    }
-}
-
 pub struct Intro<T: Widget> {
-    state: IntroState,
-    child: Wrap<T>,
+    ab: Wrap<AB<IntroInner, T>>,
+}
+
+impl<T: Widget> Intro<T> {
+    pub fn new(inner: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
+        Self {
+            ab: AB::new(IntroInner::new(size), inner, Duration::from_millis(200)).wrap(),
+        }
+    }
+}
+
+impl<T: Widget> Widget for Intro<T> {
+    fn load(&mut self, _wrap: &mut WidgetState, stack: &mut ResourceStack) {
+        self.ab.load(stack);
+    }
+
+    fn update(&mut self, _wrap: &mut WidgetState) {
+        self.ab.update();
+    }
+
+    fn input(&mut self, _wrap: &mut WidgetState, event: &InputEvent) -> bool {
+        self.ab.input(event)
+    }
+
+    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
+        self.ab.size()
+    }
+
+    fn set_size(&mut self, _wrap: &mut WidgetState, size: Size) {
+        self.ab.set_size(size);
+    }
+
+    fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
+        if !self.ab.inner().is_running() {
+            self.ab.inner().run(Duration::from_secs_f32(
+                IntroInner::ANIMATION_DURATION + IntroInner::PREPAD + IntroInner::POSTPAD,
+            ));
+        }
+        self.ab.draw(canvas);
+    }
+}
+
+struct IntroInner {
+    progress: scalar,
     layout_size: LayoutSize,
     size: Size,
-    just_changed: bool,
-    start_time: Option<Duration>,
     text: Path,
     text_height: scalar,
 }
 
-impl<T: Widget> Intro<T> {
+impl IntroInner {
     const ANIMATION_DURATION: scalar = 1.0;
+    const PREPAD: scalar = 0.3;
+    const POSTPAD: scalar = 0.5;
+
+    const ACTUAL_DURATION: scalar = Self::ANIMATION_DURATION + Self::PREPAD + Self::POSTPAD;
+    const ANIMATION_PERCENTAGE: scalar = Self::ANIMATION_DURATION / Self::ACTUAL_DURATION;
+    const PREPAD_PERCENTAGE: scalar = Self::PREPAD / Self::ACTUAL_DURATION;
 
     const RING_COUNT: i32 = 7;
     const RING_COUNT_SCALAR: scalar = Self::RING_COUNT as _;
@@ -54,16 +78,13 @@ impl<T: Widget> Intro<T> {
     const SWEEP_ANGLE: scalar = 90.0;
     const CIRCLE_SWEEP_ANGLE: scalar = 270.0;
 
-    pub fn new(child: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
+    fn new(size: LayoutSize) -> Self {
         let logo = from_svg(STACKS_TEXT).expect("Failed to parse SVG file for Stacks logo");
         let logo_height = logo.compute_tight_bounds().height();
         Self {
-            state: IntroState::Intro,
-            child: child.into(),
+            progress: 0.0,
             layout_size: size,
             size: Size::default(),
-            just_changed: false,
-            start_time: None,
             text: logo,
             text_height: logo_height,
         }
@@ -120,89 +141,28 @@ impl<T: Widget> Intro<T> {
     }
 }
 
-impl<T: Widget> Widget for Intro<T> {
-    fn load(&mut self, _wrap: &mut WidgetState, stack: &mut ResourceStack) {
-        self.child.load(stack);
-    }
-
-    fn update(&mut self, _wrap: &mut WidgetState) {
-        if self.state.should_process_child().is_some() {
-            self.child.update();
-        }
-    }
-
-    fn input(&mut self, _wrap: &mut WidgetState, event: &InputEvent) -> bool {
-        self.state.should_process_child().is_some() && self.child.input(event)
-    }
-
+impl Widget for IntroInner {
     fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
-        let b = self.just_changed;
-        if b {
-            self.just_changed = false;
-        }
-        if self.state.should_process_child().is_some() {
-            let (size, changed) = self.child.size();
-            (size, changed || b)
-        } else {
-            (self.layout_size, b)
-        }
+        (self.layout_size, false)
     }
 
     fn set_size(&mut self, _wrap: &mut WidgetState, size: Size) {
         self.size = size;
-        self.child.set_size(size);
     }
 
     fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
-        match &mut self.state {
-            IntroState::Transitioning(alpha) => {
-                let factor = State::last_update_time_draw().as_secs_f32();
-                *alpha += factor * 6.0;
-                if *alpha >= 1.0 {
-                    self.state = IntroState::Child;
-                }
-            }
-            IntroState::Child => {
-                self.child.draw(canvas);
-                return;
-            }
-            _ => {}
-        }
+        let t = self.progress;
+        let te = t.ease_out_quart();
 
-        if let Some(_s) = self.state.should_process_self() {
-            let t = match self.start_time {
-                Some(s) => (State::elapsed_draw() - s).as_secs_f32(),
-                None => {
-                    self.start_time = Some(State::elapsed_draw());
-                    0.0
-                }
-            };
+        self.draw_circles(t, te, canvas);
+        self.draw_text(te, canvas);
+    }
+}
 
-            let t_prepad = 0.3;
-            let t_postpad = 0.5;
-            let actual_duration = Self::ANIMATION_DURATION + t_prepad + t_postpad;
-
-            let t = if t >= actual_duration {
-                if matches!(self.state, IntroState::Intro) {
-                    self.state = IntroState::Transitioning(0.0);
-                    self.just_changed = true;
-                }
-                actual_duration
-            } else {
-                t
-            };
-
-            let t = ((t - t_prepad) / Self::ANIMATION_DURATION).max(0.0).min(1.0);
-            let te = t.ease_out_quart();
-
-            self.draw_circles(t, te, canvas);
-            self.draw_text(te, canvas);
-        }
-
-        if let Some(s) = self.state.should_process_child() {
-            let i = canvas.save_layer_alpha(None, (s * 255.0) as _);
-            self.child.draw(canvas);
-            canvas.restore_to_count(i);
-        }
+impl TimeReport for IntroInner {
+    fn time(&mut self, progress: scalar) {
+        let pt =
+            ((progress - Self::PREPAD_PERCENTAGE).max(0.0) / Self::ANIMATION_PERCENTAGE).min(1.0);
+        self.progress = pt;
     }
 }
