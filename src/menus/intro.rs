@@ -44,9 +44,9 @@ impl<T: Widget> Widget for Intro<T> {
 
     fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
         if !self.ab.inner().is_running() {
-            self.ab.inner().run(Duration::from_secs_f32(
-                IntroInner::ANIMATION_DURATION + IntroInner::PREPAD + IntroInner::POSTPAD,
-            ));
+            self.ab
+                .inner()
+                .run(Duration::from_secs_f32(IntroInner::ACTUAL_DURATION));
         }
         self.ab.draw(canvas);
     }
