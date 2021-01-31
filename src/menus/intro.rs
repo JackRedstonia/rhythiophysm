@@ -44,6 +44,12 @@ pub struct Intro<T: Widget> {
 impl<T: Widget> Intro<T> {
     const ANIMATION_DURATION: scalar = 1.0;
 
+    const DIAMETER: scalar = 50.0;
+    const PADDING: scalar = 40.0;
+    const STROKE_WIDTH: scalar = 6.5;
+    const SWEEP_ANGLE: scalar = 90.0;
+    const CIRCLE_SWEEP_ANGLE: scalar = 270.0;
+
     pub fn new(child: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
         let logo = from_svg(STACKS_LOGO).expect("Failed to parse SVG file for Stacks logo");
         let logo_height = logo.compute_tight_bounds().height();
@@ -56,6 +62,59 @@ impl<T: Widget> Intro<T> {
             logo,
             logo_height,
         }
+    }
+
+    fn draw_circles(&self, t: scalar, canvas: &mut Canvas) {
+        let paint = Paint::new_color4f(1.0, 1.0, 1.0, t)
+            .stroke()
+            .with_stroke_width(Self::STROKE_WIDTH)
+            .anti_alias();
+
+        let center = Vector::new(
+            Self::PADDING + Self::DIAMETER / 2.0,
+            self.size.height - Self::PADDING - Self::DIAMETER / 2.0,
+        );
+
+        let ring_count = 10;
+        let ring_count_scalar = ring_count as scalar;
+        for i in (0..ring_count).map(|e| e as scalar) {
+            let diameter = Self::DIAMETER + (i * Self::STROKE_WIDTH * 4.0);
+            let percentage = 1.0 - i / ring_count_scalar;
+            let alpha = percentage.powi(5) * t;
+            let paint = paint.clone().with_alpha(alpha);
+            let start = t * (Self::SWEEP_ANGLE - i * 2.0) * (i + 1.0);
+            let sweep_mult = (t * 1.6).min(1.0);
+            let sweep_mult = 1.0 - (1.0 - sweep_mult).powi(4);
+            let sweep = Self::CIRCLE_SWEEP_ANGLE * sweep_mult;
+            Self::draw_circle(center, diameter, start, sweep, &paint, canvas);
+        }
+    }
+
+    fn draw_circle(
+        center: Vector,
+        diameter: scalar,
+        start: scalar,
+        sweep: scalar,
+        paint: &Paint,
+        canvas: &mut Canvas,
+    ) {
+        let diameter = diameter - Self::STROKE_WIDTH;
+        let oval_center = Vector::new(diameter / 2.0, diameter / 2.0);
+        let oval = Rect::from_wh(diameter, diameter).with_offset(center - oval_center);
+        canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
+    }
+
+    fn draw_logo(&self, t: scalar, canvas: &mut Canvas) {
+        let scaling = Self::DIAMETER / self.logo_height;
+        let paint = Paint::new_color4f(1.0, 1.0, 1.0, t).anti_alias();
+        canvas.save();
+        canvas.translate((
+            Self::PADDING * 2.0 + Self::DIAMETER,
+            self.size.height - Self::DIAMETER - Self::PADDING,
+        ));
+        canvas.scale((scaling, scaling));
+        canvas.draw_path(&self.logo, &paint);
+        canvas.restore();
     }
 }
 
@@ -116,7 +175,7 @@ impl<T: Widget> Widget for Intro<T> {
 
             let t = if t >= Self::ANIMATION_DURATION + backoff {
                 if matches!(self.state, IntroState::Intro) {
-                    self.state = IntroState::Transitioning(0.0);
+                    // self.state = IntroState::Transitioning(0.0);
                 }
                 Self::ANIMATION_DURATION + backoff
             } else {
@@ -126,41 +185,8 @@ impl<T: Widget> Widget for Intro<T> {
             let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
             let t = 1.0 - (1.0 - t).powi(4);
 
-            let opacity = (t * 1.4).min(1.0);
-
-            let diameter = 50.0;
-            let padding = 40.0;
-            let stroke_width = 6.5;
-            let t_sweep = 50.0;
-
-            let paint = Paint::new_color4f(1.0, 1.0, 1.0, opacity).anti_alias();
-
-            let half_width = stroke_width / 2.0;
-            let oval = Rect {
-                left: padding + half_width,
-                top: self.size.height - diameter - padding + half_width,
-                right: padding + diameter - half_width,
-                bottom: self.size.height - padding - half_width,
-            };
-            let start = t * t_sweep;
-            let sweep = 360.0 - start * 2.0;
-            canvas.draw_arc(
-                oval,
-                start - 90.0,
-                sweep,
-                false,
-                &paint.clone().stroke().with_stroke_width(stroke_width),
-            );
-
-            let scaling = diameter / self.logo_height;
-            canvas.save();
-            canvas.translate((
-                padding * 2.0 + diameter,
-                self.size.height - diameter - padding,
-            ));
-            canvas.scale((scaling, scaling));
-            canvas.draw_path(&self.logo, &paint);
-            canvas.restore();
+            self.draw_circles(t, canvas);
+            self.draw_logo(t, canvas);
         }
 
         if let Some(s) = self.state.should_process_child() {
