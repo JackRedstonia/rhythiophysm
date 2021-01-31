@@ -5,7 +5,7 @@ use stacks::prelude::*;
 use skia::utils::parse_path::from_svg;
 use skia::Path;
 
-const STACKS_LOGO: &str = include_str!("../../resources/stacks.svg");
+const STACKS_TEXT: &str = include_str!("../../resources/stacks.svg");
 
 enum IntroState {
     Intro,
@@ -38,12 +38,15 @@ pub struct Intro<T: Widget> {
     size: Size,
     just_changed: bool,
     start_time: Option<Duration>,
-    logo: Path,
-    logo_height: scalar,
+    text: Path,
+    text_height: scalar,
 }
 
 impl<T: Widget> Intro<T> {
     const ANIMATION_DURATION: scalar = 1.0;
+
+    const RING_COUNT: i32 = 7;
+    const RING_COUNT_SCALAR: scalar = Self::RING_COUNT as _;
 
     const DIAMETER: scalar = 50.0;
     const PADDING: scalar = 40.0;
@@ -52,7 +55,7 @@ impl<T: Widget> Intro<T> {
     const CIRCLE_SWEEP_ANGLE: scalar = 270.0;
 
     pub fn new(child: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
-        let logo = from_svg(STACKS_LOGO).expect("Failed to parse SVG file for Stacks logo");
+        let logo = from_svg(STACKS_TEXT).expect("Failed to parse SVG file for Stacks logo");
         let logo_height = logo.compute_tight_bounds().height();
         Self {
             state: IntroState::Intro,
@@ -61,37 +64,29 @@ impl<T: Widget> Intro<T> {
             size: Size::default(),
             just_changed: false,
             start_time: None,
-            logo,
-            logo_height,
+            text: logo,
+            text_height: logo_height,
         }
     }
 
-    fn draw_circles(&self, t: scalar, canvas: &mut Canvas) {
-        let paint = Paint::new_color4f(1.0, 1.0, 1.0, t)
+    fn draw_circles(&self, t: scalar, te: scalar, canvas: &mut Canvas) {
+        let stroke_width = Self::STROKE_WIDTH * te;
+        let paint = Paint::new_color4f(1.0, 1.0, 1.0, te)
             .stroke()
+            .with_stroke_width(stroke_width)
             .anti_alias();
-
         let center = Vector::new(
             Self::PADDING + Self::DIAMETER / 2.0,
             self.size.height - Self::PADDING - Self::DIAMETER / 2.0,
         );
+        let sweep_mult = (t * 1.6).min(1.0).ease_out_quart();
+        let sweep = Self::CIRCLE_SWEEP_ANGLE * sweep_mult;
 
-        let ring_count = 10;
-        let ring_count_scalar = ring_count as scalar;
-        for i in (0..ring_count).map(|e| e as scalar) {
-            let diameter_mult = (t * 1.0).min(1.0);
-            let diameter_mult = 1.0 - (1.0 - diameter_mult).powi(2);
-            let base_diameter = Self::DIAMETER * (2.0 - diameter_mult);
-            let diameter = base_diameter + (i * Self::STROKE_WIDTH * 4.0) * diameter_mult;
-            let stroke_width = Self::STROKE_WIDTH * t;
-            let paint = paint.clone().with_stroke_width(stroke_width);
-            let percentage = 1.0 - i / ring_count_scalar;
-            let alpha = percentage.powi(5) * t;
-            let paint = paint.clone().with_alpha(alpha);
-            let start = t * (Self::SWEEP_ANGLE - i * 2.0) * (i + 1.0);
-            let sweep_mult = (t * 1.6).min(1.0);
-            let sweep_mult = 1.0 - (1.0 - sweep_mult).powi(4);
-            let sweep = Self::CIRCLE_SWEEP_ANGLE * sweep_mult;
+        for i in (0..Self::RING_COUNT).map(|e| e as scalar) {
+            let diameter = Self::DIAMETER * (2.0 - te) + stroke_width * i * 4.0;
+            let percentage = 1.0 - i / Self::RING_COUNT_SCALAR;
+            let paint = paint.clone().with_alpha(percentage.powi(2) * te);
+            let start = te * (Self::SWEEP_ANGLE - i * 2.0) * (i + 1.0);
             Self::draw_circle(center, diameter, stroke_width, start, sweep, &paint, canvas);
         }
     }
@@ -111,8 +106,8 @@ impl<T: Widget> Intro<T> {
         canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
     }
 
-    fn draw_logo(&self, t: scalar, canvas: &mut Canvas) {
-        let scaling = Self::DIAMETER / self.logo_height;
+    fn draw_text(&self, t: scalar, canvas: &mut Canvas) {
+        let scaling = Self::DIAMETER / self.text_height;
         let paint = Paint::new_color4f(1.0, 1.0, 1.0, t).anti_alias();
         canvas.save();
         canvas.translate((
@@ -120,7 +115,7 @@ impl<T: Widget> Intro<T> {
             self.size.height - Self::DIAMETER - Self::PADDING,
         ));
         canvas.scale((scaling, scaling));
-        canvas.draw_path(&self.logo, &paint);
+        canvas.draw_path(&self.text, &paint);
         canvas.restore();
     }
 }
@@ -196,10 +191,10 @@ impl<T: Widget> Widget for Intro<T> {
             };
 
             let t = (t - backoff).max(0.0) / Self::ANIMATION_DURATION;
-            let t = 1.0 - (1.0 - t).powi(4);
+            let te = t.ease_out_quart();
 
-            self.draw_circles(t, canvas);
-            self.draw_logo(t, canvas);
+            self.draw_circles(t, te, canvas);
+            self.draw_text(t, canvas);
         }
 
         if let Some(s) = self.state.should_process_child() {
