@@ -69,7 +69,6 @@ impl<T: Widget> Intro<T> {
     fn draw_circles(&self, t: scalar, canvas: &mut Canvas) {
         let paint = Paint::new_color4f(1.0, 1.0, 1.0, t)
             .stroke()
-            .with_stroke_width(Self::STROKE_WIDTH)
             .anti_alias();
 
         let center = Vector::new(
@@ -80,7 +79,12 @@ impl<T: Widget> Intro<T> {
         let ring_count = 10;
         let ring_count_scalar = ring_count as scalar;
         for i in (0..ring_count).map(|e| e as scalar) {
-            let diameter = Self::DIAMETER + (i * Self::STROKE_WIDTH * 4.0);
+            let diameter_mult = (t * 1.0).min(1.0);
+            let diameter_mult = 1.0 - (1.0 - diameter_mult).powi(2);
+            let base_diameter = Self::DIAMETER * (2.0 - diameter_mult);
+            let diameter = base_diameter + (i * Self::STROKE_WIDTH * 4.0) * diameter_mult;
+            let stroke_width = Self::STROKE_WIDTH * t;
+            let paint = paint.clone().with_stroke_width(stroke_width);
             let percentage = 1.0 - i / ring_count_scalar;
             let alpha = percentage.powi(5) * t;
             let paint = paint.clone().with_alpha(alpha);
@@ -88,19 +92,20 @@ impl<T: Widget> Intro<T> {
             let sweep_mult = (t * 1.6).min(1.0);
             let sweep_mult = 1.0 - (1.0 - sweep_mult).powi(4);
             let sweep = Self::CIRCLE_SWEEP_ANGLE * sweep_mult;
-            Self::draw_circle(center, diameter, start, sweep, &paint, canvas);
+            Self::draw_circle(center, diameter, stroke_width, start, sweep, &paint, canvas);
         }
     }
 
     fn draw_circle(
         center: Vector,
         diameter: scalar,
+        stroke_width: scalar,
         start: scalar,
         sweep: scalar,
         paint: &Paint,
         canvas: &mut Canvas,
     ) {
-        let diameter = diameter - Self::STROKE_WIDTH;
+        let diameter = diameter - stroke_width;
         let oval_center = Vector::new(diameter / 2.0, diameter / 2.0);
         let oval = Rect::from_wh(diameter, diameter).with_offset(center - oval_center);
         canvas.draw_arc(oval, start - 90.0, sweep, false, &paint);
