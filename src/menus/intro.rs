@@ -1,37 +1,47 @@
 use std::time::Duration;
 
-use stacks::prelude::*;
-
 use stacks::framework::widgets::layout::{TimeReport, AB};
+use stacks::game::ID;
+use stacks::prelude::*;
 
 use skia::utils::parse_path::from_svg;
 use skia::Path;
 
 const STACKS_TEXT: &str = include_str!("../../resources/stacks.svg");
 
-pub struct Intro<T: Widget> {
-    ab: Wrap<AB<IntroInner, T>>,
+pub struct Intro {
+    ab: Wrap<AB<IntroInner>>,
+    excl_id: ID,
 }
 
-impl<T: Widget> Intro<T> {
-    pub fn new(inner: impl Into<Wrap<T>>) -> Self {
-        Self {
-            ab: AB::new(IntroInner::new(), inner, Duration::from_millis(200)).wrap(),
-        }
+impl Intro {
+    pub fn new() -> Wrap<Self> {
+        let ab = AB::new(IntroInner::new(), Duration::from_millis(200));
+        Wrap::new(Self {
+            ab: ab.clone(),
+            excl_id: ab.id(),
+        })
+        .with_child(ab)
+    }
+
+    pub fn add_child(&mut self, child: Wrap<impl Widget + 'static>) {
+        self.ab.add_child(child);
+    }
+
+    pub fn add_child_dyn(&mut self, child: Wrap<dyn Widget>) {
+        self.ab.add_child_dyn(child)
     }
 }
 
-impl<T: Widget> Widget for Intro<T> {
+impl Widget for Intro {
     fn load(&mut self, _state: &mut WidgetState, stack: &mut ResourceStack) {
         self.ab.load(stack);
     }
 
-    fn update(&mut self, _state: &mut WidgetState) {
-        self.ab.update();
-    }
-
-    fn input(&mut self, _state: &mut WidgetState, event: &InputEvent) -> bool {
-        self.ab.input(event)
+    fn on_child_add(&mut self, child: &mut Wrap<dyn Widget>) {
+        if child.id() != self.excl_id {
+            panic!("Cannot add children to Intro - use `inner().add_child`/`inner().add_child_dyn` instead")
+        }
     }
 
     fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
@@ -77,7 +87,7 @@ impl IntroInner {
     const SWEEP_ANGLE: scalar = 90.0;
     const CIRCLE_SWEEP_ANGLE: scalar = 270.0;
 
-    fn new() -> Self {
+    fn new() -> Wrap<Self> {
         let logo = from_svg(STACKS_TEXT).expect("Failed to parse SVG file for Stacks logo");
         let logo_height = logo.compute_tight_bounds().height();
         Self {
@@ -86,6 +96,7 @@ impl IntroInner {
             text: logo,
             text_height: logo_height,
         }
+        .into()
     }
 
     fn draw_circles(&self, t: scalar, te: scalar, canvas: &mut Canvas) {

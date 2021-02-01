@@ -20,11 +20,13 @@ fn main() {
             LayoutSize::ZERO.expand_width().expand_height(),
             Paint::new_color4f(0.3, 0.3, 0.3, 1.0),
         );
-        let root = Intro::new(root);
+        let mut intro = Intro::new();
+        intro.inner().add_child(root);
         // Set up fullscreening and auto-resizing
-        let root = FullscreenContainer::new(SizeFillContainer::new(root, Size::new(1280.0, 720.0)));
+        let root = SizeFillContainer::new(Size::new(1280.0, 720.0)).with_child(intro);
+        let root = FullscreenContainer::new().with_child(root);
         // Set up audio
-        let root = Audio::new(root)?;
+        let root = Audio::new()?.with_child(root);
         Ok(root)
     })
     .expect("Failed to run game");
