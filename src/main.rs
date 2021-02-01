@@ -17,19 +17,12 @@ use menus::Intro;
 fn main() {
     Framework::run("Rhythiophysm", || {
         let root = Rectangle::new(
-            LayoutSize::min(1280.0, 720.0)
-                .expand_width()
-                .expand_height(),
+            LayoutSize::ZERO.expand_width().expand_height(),
             Paint::new_color4f(0.3, 0.3, 0.3, 1.0),
         );
-        let root = Intro::new(
-            root,
-            LayoutSize::min(1280.0, 720.0)
-                .expand_width()
-                .expand_height(),
-        );
+        let root = Intro::new(root);
         // Set up fullscreening and auto-resizing
-        let root = FullscreenContainer::new(SizeFillContainer::new(root));
+        let root = FullscreenContainer::new(SizeFillContainer::new(root, Size::new(1280.0, 720.0)));
         // Set up audio
         let root = Audio::new(root)?;
         Ok(root)

@@ -11,23 +11,23 @@ enum MainMenuState {
 }
 
 impl Widget for MainMenu {
-    fn load(&mut self, _wrap: &mut WidgetState, _stack: &mut ResourceStack) {}
+    fn load(&mut self, _state: &mut WidgetState, _stack: &mut ResourceStack) {}
 
-    fn update(&mut self, _wrap: &mut WidgetState) {}
+    fn update(&mut self, _state: &mut WidgetState) {}
 
-    fn input(&mut self, _wrap: &mut WidgetState, _event: &InputEvent) -> bool {
+    fn input(&mut self, _state: &mut WidgetState, _event: &InputEvent) -> bool {
         false
     }
 
-    fn hover(&mut self, _wrap: &mut WidgetState) {}
+    fn hover(&mut self, _state: &mut WidgetState) {}
 
-    fn hover_lost(&mut self, _wrap: &mut WidgetState) {}
+    fn hover_lost(&mut self, _state: &mut WidgetState) {}
 
-    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
+    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
         (LayoutSize::ZERO, false)
     }
 
-    fn set_size(&mut self, _wrap: &mut WidgetState, _size: Size) {}
+    fn set_size(&mut self, _state: &mut WidgetState, _size: Size) {}
 
-    fn draw(&mut self, _wrap: &mut WidgetState, _canvas: &mut Canvas) {}
+    fn draw(&mut self, _state: &mut WidgetState, _canvas: &mut Canvas) {}
 }

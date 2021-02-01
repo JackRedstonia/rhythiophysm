@@ -14,35 +14,35 @@ pub struct Intro<T: Widget> {
 }
 
 impl<T: Widget> Intro<T> {
-    pub fn new(inner: impl Into<Wrap<T>>, size: LayoutSize) -> Self {
+    pub fn new(inner: impl Into<Wrap<T>>) -> Self {
         Self {
-            ab: AB::new(IntroInner::new(size), inner, Duration::from_millis(200)).wrap(),
+            ab: AB::new(IntroInner::new(), inner, Duration::from_millis(200)).wrap(),
         }
     }
 }
 
 impl<T: Widget> Widget for Intro<T> {
-    fn load(&mut self, _wrap: &mut WidgetState, stack: &mut ResourceStack) {
+    fn load(&mut self, _state: &mut WidgetState, stack: &mut ResourceStack) {
         self.ab.load(stack);
     }
 
-    fn update(&mut self, _wrap: &mut WidgetState) {
+    fn update(&mut self, _state: &mut WidgetState) {
         self.ab.update();
     }
 
-    fn input(&mut self, _wrap: &mut WidgetState, event: &InputEvent) -> bool {
+    fn input(&mut self, _state: &mut WidgetState, event: &InputEvent) -> bool {
         self.ab.input(event)
     }
 
-    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
+    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
         self.ab.size()
     }
 
-    fn set_size(&mut self, _wrap: &mut WidgetState, size: Size) {
+    fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
         self.ab.set_size(size);
     }
 
-    fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
+    fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
         if !self.ab.inner().is_running() {
             self.ab
                 .inner()
@@ -54,7 +54,6 @@ impl<T: Widget> Widget for Intro<T> {
 
 struct IntroInner {
     progress: scalar,
-    layout_size: LayoutSize,
     size: Size,
     text: Path,
     text_height: scalar,
@@ -78,12 +77,11 @@ impl IntroInner {
     const SWEEP_ANGLE: scalar = 90.0;
     const CIRCLE_SWEEP_ANGLE: scalar = 270.0;
 
-    fn new(size: LayoutSize) -> Self {
+    fn new() -> Self {
         let logo = from_svg(STACKS_TEXT).expect("Failed to parse SVG file for Stacks logo");
         let logo_height = logo.compute_tight_bounds().height();
         Self {
             progress: 0.0,
-            layout_size: size,
             size: Size::default(),
             text: logo,
             text_height: logo_height,
@@ -142,15 +140,15 @@ impl IntroInner {
 }
 
 impl Widget for IntroInner {
-    fn size(&mut self, _wrap: &mut WidgetState) -> (LayoutSize, bool) {
-        (self.layout_size, false)
+    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
+        (LayoutSize::ZERO.expand_width().expand_height(), false)
     }
 
-    fn set_size(&mut self, _wrap: &mut WidgetState, size: Size) {
+    fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
         self.size = size;
     }
 
-    fn draw(&mut self, _wrap: &mut WidgetState, canvas: &mut Canvas) {
+    fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
         let t = self.progress;
         let te = t.ease_out_quart();
 
