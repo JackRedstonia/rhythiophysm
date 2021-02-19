@@ -842,7 +842,7 @@ dependencies = [
 [[package]]
 name = "soloud"
 version = "0.3.4"
-source = "git+https://gitlab.com/JackRedstonia/soloud-rs#b0c7635bc2f23593b3f223143084fd8db27fa04b"
+source = "git+https://gitlab.com/JackRedstonia/soloud-rs#8fb826b24a9426f67a110745b30c0ca998b156ed"
 dependencies = [
  "bitflags",
  "soloud-derive",
@@ -852,7 +852,7 @@ dependencies = [
 [[package]]
 name = "soloud-derive"
 version = "0.3.2"
-source = "git+https://gitlab.com/JackRedstonia/soloud-rs#b0c7635bc2f23593b3f223143084fd8db27fa04b"
+source = "git+https://gitlab.com/JackRedstonia/soloud-rs#8fb826b24a9426f67a110745b30c0ca998b156ed"
 dependencies = [
  "quote",
  "syn",
@@ -861,7 +861,7 @@ dependencies = [
 [[package]]
 name = "soloud-sys"
 version = "0.3.4"
-source = "git+https://gitlab.com/JackRedstonia/soloud-rs#b0c7635bc2f23593b3f223143084fd8db27fa04b"
+source = "git+https://gitlab.com/JackRedstonia/soloud-rs#8fb826b24a9426f67a110745b30c0ca998b156ed"
 dependencies = [
  "cmake",
  "libc",
@@ -876,7 +876,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "stacks"
 version = "0.1.0"
-source = "git+https://gitlab.com/JackRedstonia/stacks#1ef76823751d836f2db6aaddb80aa8886abc00f5"
+source = "git+https://gitlab.com/JackRedstonia/stacks#ba757573fe4b150375cc608d8f4b22004206fea5"
 dependencies = [
  "skulpin-renderer",
  "skulpin-renderer-sdl2",
