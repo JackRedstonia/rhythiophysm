@@ -4,10 +4,11 @@ use stacks::framework::widgets::layout::{TimeReport, AB};
 use stacks::game::ID;
 use stacks::prelude::*;
 
+use skia::gradient_shader::{self, GradientShaderColors};
 use skia::utils::parse_path::from_svg;
-use skia::Path;
+use skia::{Color4f, ColorSpace, Path, TileMode};
 
-const STACKS_TEXT: &str = include_str!("../../resources/stacks.svg");
+const TEXT: &str = include_str!("../../resources/stacks.svg");
 
 pub struct Intro {
     ab: Wrap<AB<IntroInner>>,
@@ -56,7 +57,7 @@ impl Widget for Intro {
         if !self.ab.inner().is_running() {
             self.ab
                 .inner_mut()
-                .run(Duration::from_secs_f32(IntroInner::ACTUAL_DURATION));
+                .run(Duration::from_secs_f32(IntroInner::REAL_TIME));
         }
         self.ab.draw(canvas);
     }
@@ -70,19 +71,22 @@ struct IntroInner {
 }
 
 impl IntroInner {
-    const ANIMATION_DURATION: scalar = 1.2;
-    const PREPAD: scalar = 0.1;
-    const POSTPAD: scalar = 0.5;
+    const TIME: scalar = 1.2;
+    const WAIT_IN: scalar = 0.1;
+    const WAIT_OUT: scalar = 0.5;
 
-    const ACTUAL_DURATION: scalar = Self::ANIMATION_DURATION + Self::PREPAD + Self::POSTPAD;
-    const ANIMATION_PERCENTAGE: scalar = Self::ANIMATION_DURATION / Self::ACTUAL_DURATION;
-    const PREPAD_PERCENTAGE: scalar = Self::PREPAD / Self::ACTUAL_DURATION;
+    const REAL_TIME: scalar = Self::TIME + Self::WAIT_IN + Self::WAIT_OUT;
 
     const TEXT_HEIGHT: scalar = 50.0;
-    const PADDING: scalar = 100.0;
+    const TEXT_PAD: scalar = 100.0;
+
+    const BG_COLORS: [Color4f; 2] = [
+        Color4f::new(0.0, 0.2, 0.6, 1.0),
+        Color4f::new(0.0, 0.3, 0.5, 1.0),
+    ];
 
     fn new() -> Wrap<Self> {
-        let logo = from_svg(STACKS_TEXT).expect("Failed to parse SVG file for Stacks logo");
+        let logo = from_svg(TEXT).expect("Failed to parse SVG file for Stacks logo");
         let text_rect = logo.compute_tight_bounds();
         Self {
             progress: 0.0,
@@ -93,58 +97,36 @@ impl IntroInner {
         .into()
     }
 
+    fn draw_background(&self, canvas: &mut Canvas) {
+        let mut paint = Paint::default();
+        let grc = GradientShaderColors::ColorsInSpace(&Self::BG_COLORS, ColorSpace::new_srgb());
+        let gr = gradient_shader::linear(
+            (Vector::default(), self.size.bottom_right()),
+            grc,
+            None,
+            TileMode::default(),
+            None,
+            None,
+        );
+        paint.set_shader(gr);
+        paint.set_dither(true);
+        canvas.draw_rect(Rect::from_size(self.size), &paint);
+    }
+
     fn draw_text(&self, te: scalar, canvas: &mut Canvas) {
         let scaling = Self::TEXT_HEIGHT / self.text_rect.height();
         let paint = Paint::new_color4f(1.0, 1.0, 1.0, te).anti_alias();
         canvas.save();
         canvas.translate((
-            Self::PADDING + (1.0 - te) * 20.0,
+            Self::TEXT_PAD + (1.0 - te) * 20.0,
             (self.size.height - Self::TEXT_HEIGHT) * 0.5,
         ));
         canvas.scale((scaling, scaling));
         canvas.draw_path(&self.text, &paint);
         canvas.restore();
     }
-}
 
-impl Widget for IntroInner {
-    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
-        (LayoutSize::ZERO.expand_width().expand_height(), false)
-    }
-
-    fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
-        self.size = size;
-    }
-
-    fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
-        let t = self.progress;
-        let te = t.ease_out_quart();
-
-        // Draw background
-        let mut paint = Paint::default();
-        let grcs = [
-            skia::Color4f::new(0.0, 0.2, 0.6, 1.0),
-            skia::Color4f::new(0.0, 0.3, 0.5, 1.0),
-        ];
-        let grc = skia::gradient_shader::GradientShaderColors::ColorsInSpace(
-            &grcs,
-            skia::ColorSpace::new_srgb(),
-        );
-        let gr = skia::gradient_shader::linear(
-            (Vector::default(), self.size.bottom_right()),
-            grc,
-            None,
-            skia::TileMode::default(),
-            None,
-            None,
-        );
-        paint.set_shader(gr);
-        // This gradient is rather subtle, banding might occur. Dithering combats that.
-        paint.set_dither(true);
-
-        canvas.draw_rect(Rect::from_size(self.size), &paint);
-
-        // Draw foreground
+    fn draw_dots(&self, te: scalar, canvas: &mut Canvas) {
         let spcr = 25.0;
         let offset = Vector::new(spcr, spcr) * 0.3;
         canvas.save();
@@ -163,14 +145,33 @@ impl Widget for IntroInner {
             }
         }
         canvas.restore();
+    }
+}
+
+impl Widget for IntroInner {
+    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
+        (LayoutSize::ZERO.expand_width().expand_height(), false)
+    }
+
+    fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
+        self.size = size;
+    }
+
+    fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
+        let t = self.progress;
+        let te = t.ease_out_quart();
+
+        self.draw_background(canvas);
+        self.draw_dots(te, canvas);
         self.draw_text(te, canvas);
     }
 }
 
 impl TimeReport for IntroInner {
     fn time(&mut self, progress: scalar) {
-        let pt =
-            ((progress - Self::PREPAD_PERCENTAGE).max(0.0) / Self::ANIMATION_PERCENTAGE).min(1.0);
+        let pl = IntroInner::TIME / IntroInner::REAL_TIME;
+        let pw = IntroInner::WAIT_IN / IntroInner::REAL_TIME;
+        let pt = ((progress - pw).max(0.0) / pl).min(1.0);
         self.progress = pt;
     }
 }
