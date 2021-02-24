@@ -137,8 +137,8 @@ impl IntroInner {
         for x in -5..=((self.size.width / sp) as i32 + 5) {
             for y in -5..=((self.size.height / sp) as i32 + 5) {
                 let p = Vector::new(x as f32, y as f32) * sp + offset;
-                let r = ((p.length() / 200.0 - 3.2 - te * 2.0).sin() + 1.0) * 2.0;
-                canvas.draw_circle(p, r, &paint);
+                let a = (p.length() / 200.0 - 3.2 - te * 2.0).sin() + 1.0;
+                canvas.draw_circle(p, a * 2.0, &paint.clone().with_alpha(a / 4.0));
             }
         }
         canvas.restore();
