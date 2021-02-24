@@ -98,7 +98,6 @@ impl IntroInner {
     }
 
     fn draw_background(&self, canvas: &mut Canvas) {
-        let mut paint = Paint::default();
         let grc = GradientShaderColors::ColorsInSpace(&Self::BG_COLORS, ColorSpace::new_srgb());
         let gr = gradient_shader::linear(
             (Vector::default(), self.size.bottom_right()),
@@ -108,9 +107,10 @@ impl IntroInner {
             None,
             None,
         );
-        paint.set_shader(gr);
-        paint.set_dither(true);
-        canvas.draw_rect(Rect::from_size(self.size), &paint);
+        canvas.draw_rect(
+            Rect::from_size(self.size),
+            &Paint::default().with_shader(gr).dither(),
+        );
     }
 
     fn draw_text(&self, te: scalar, canvas: &mut Canvas) {
@@ -127,21 +127,18 @@ impl IntroInner {
     }
 
     fn draw_dots(&self, te: scalar, canvas: &mut Canvas) {
-        let spcr = 25.0;
-        let offset = Vector::new(spcr, spcr) * 0.3;
+        let paint = Paint::new_color4f(1.0, 1.0, 1.0, 0.2).anti_alias();
+        let sp = 25.0;
+        let offset = Vector::new(sp, sp) * 0.3;
         canvas.save();
         let mut m = Matrix::default();
         m.set_skew((0.02, 0.06), self.size.center());
         canvas.concat(&m);
-        for x in -5..=((self.size.width / spcr) as i32 + 5) {
-            for y in -5..=((self.size.height / spcr) as i32 + 5) {
-                let p = Vector::new(x as f32 * spcr, y as f32 * spcr) + offset;
-                let paint = Paint::new_color4f(1.0, 1.0, 1.0, 0.2).anti_alias();
-                canvas.draw_circle(
-                    p,
-                    ((p.length() / 200.0 - 3.2 - te * 2.0).sin() + 1.0) * 2.0,
-                    &paint,
-                );
+        for x in -5..=((self.size.width / sp) as i32 + 5) {
+            for y in -5..=((self.size.height / sp) as i32 + 5) {
+                let p = Vector::new(x as f32, y as f32) * sp + offset;
+                let r = ((p.length() / 200.0 - 3.2 - te * 2.0).sin() + 1.0) * 2.0;
+                canvas.draw_circle(p, r, &paint);
             }
         }
         canvas.restore();
