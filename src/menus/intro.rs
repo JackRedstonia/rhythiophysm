@@ -81,12 +81,13 @@ impl IntroInner {
     const TEXT_PAD: scalar = 100.0;
 
     const BG_COLORS: [Color4f; 2] = [
-        Color4f::new(0.0, 0.2, 0.6, 1.0),
-        Color4f::new(0.0, 0.3, 0.5, 1.0),
+        Color4f::new(0.1, 0.2, 0.7, 1.0),
+        Color4f::new(0.1, 0.4, 0.5, 1.0),
     ];
 
     fn new() -> Wrap<Self> {
-        let logo = from_svg(TEXT).expect("Failed to parse SVG file for Stacks logo");
+        let logo =
+            from_svg(TEXT).expect("Failed to parse SVG file for Stacks logo");
         let text_rect = logo.compute_tight_bounds();
         Self {
             progress: 0.0,
@@ -98,7 +99,10 @@ impl IntroInner {
     }
 
     fn draw_background(&self, canvas: &mut Canvas) {
-        let grc = GradientShaderColors::ColorsInSpace(&Self::BG_COLORS, ColorSpace::new_srgb());
+        let grc = GradientShaderColors::ColorsInSpace(
+            &Self::BG_COLORS,
+            ColorSpace::new_srgb(),
+        );
         let gr = gradient_shader::linear(
             (Vector::default(), self.size.bottom_right()),
             grc,
@@ -138,7 +142,11 @@ impl IntroInner {
             for y in -5..=((self.size.height / sp) as i32 + 5) {
                 let p = Vector::new(x as f32, y as f32) * sp + offset;
                 let a = (p.length() / 200.0 - 3.2 - te * 2.0).sin() + 1.0;
-                canvas.draw_circle(p, a * 2.0, &paint.clone().with_alpha(a / 4.0));
+                canvas.draw_circle(
+                    p,
+                    a * 2.0,
+                    &paint.clone().with_alpha(a / 4.0),
+                );
             }
         }
         canvas.restore();
