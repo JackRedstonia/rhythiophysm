@@ -68,6 +68,7 @@ struct IntroInner {
     size: Size,
     text: Path,
     text_rect: Rect,
+    background_paint: Paint,
 }
 
 impl IntroInner {
@@ -82,7 +83,7 @@ impl IntroInner {
 
     const BG_COLORS: [Color4f; 2] = [
         Color4f::new(0.1, 0.2, 0.7, 1.0),
-        Color4f::new(0.1, 0.4, 0.5, 1.0),
+        Color4f::new(0.1, 0.3, 0.6, 1.0),
     ];
 
     fn new() -> Wrap<Self> {
@@ -94,27 +95,13 @@ impl IntroInner {
             size: Size::default(),
             text: logo,
             text_rect,
+            background_paint: Paint::default().dither(),
         }
         .into()
     }
 
     fn draw_background(&self, canvas: &mut Canvas) {
-        let grc = GradientShaderColors::ColorsInSpace(
-            &Self::BG_COLORS,
-            ColorSpace::new_srgb(),
-        );
-        let gr = gradient_shader::linear(
-            (Vector::default(), self.size.bottom_right()),
-            grc,
-            None,
-            TileMode::default(),
-            None,
-            None,
-        );
-        canvas.draw_rect(
-            Rect::from_size(self.size),
-            &Paint::default().with_shader(gr).dither(),
-        );
+        canvas.draw_rect(Rect::from_size(self.size), &self.background_paint);
     }
 
     fn draw_text(&self, te: scalar, canvas: &mut Canvas) {
@@ -160,6 +147,18 @@ impl Widget for IntroInner {
 
     fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
         self.size = size;
+        let gr = gradient_shader::linear(
+            (Vector::default(), self.size.bottom_right()),
+            GradientShaderColors::ColorsInSpace(
+                &Self::BG_COLORS,
+                ColorSpace::new_srgb(),
+            ),
+            None,
+            TileMode::default(),
+            None,
+            None,
+        );
+        self.background_paint.set_shader(gr);
     }
 
     fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
