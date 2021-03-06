@@ -132,7 +132,7 @@ impl IntroInner {
                 canvas.draw_circle(
                     p,
                     a * 2.0,
-                    &paint.clone().with_alpha(a / 4.0),
+                    &paint.clone().with_alpha((a / 2.0).ease_in_quad() / 2.0),
                 );
             }
         }
