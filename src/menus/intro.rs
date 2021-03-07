@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use stacks::framework::widgets::layout::{TimeReport, AB};
-use stacks::game::ID;
 use stacks::prelude::*;
 
 use skia::gradient_shader::{self, GradientShaderColors};
@@ -10,39 +9,28 @@ use skia::{Color4f, ColorSpace, Path, TileMode};
 
 const TEXT: &str = include_str!("../../resources/stacks.svg");
 
-pub struct Intro {
-    ab: Wrap<AB<IntroInner>>,
-    excl_id: ID,
+pub struct Intro<T: Widget + ?Sized> {
+    ab: Wrap<AB<IntroInner, T>>,
 }
 
-impl Intro {
-    pub fn new() -> Wrap<Self> {
-        let ab = AB::new(IntroInner::new(), Duration::from_millis(200));
-        Wrap::new(Self {
-            ab: ab.clone(),
-            excl_id: ab.id(),
-        })
-        .with_child(ab)
-    }
-
-    pub fn add_child(&mut self, child: Wrap<impl Widget + 'static>) {
-        self.ab.add_child(child);
-    }
-
-    pub fn add_child_dyn(&mut self, child: Wrap<dyn Widget>) {
-        self.ab.add_child_dyn(child)
+impl<T: Widget + ?Sized> Intro<T> {
+    pub fn new(child: Wrap<T>) -> Wrap<Self> {
+        let ab = AB::new(IntroInner::new(), child, Duration::from_millis(200));
+        Self { ab }.into()
     }
 }
 
-impl Widget for Intro {
+impl<T: Widget + ?Sized> Widget for Intro<T> {
     fn load(&mut self, _state: &mut WidgetState, stack: &mut ResourceStack) {
         self.ab.load(stack);
     }
 
-    fn on_child_add(&mut self, child: &mut Wrap<dyn Widget>) {
-        if child.id() != self.excl_id {
-            panic!("Cannot add children to Intro - use `inner().add_child`/`inner().add_child_dyn` instead")
-        }
+    fn update(&mut self, _state: &mut WidgetState) {
+        self.ab.update()
+    }
+
+    fn input(&mut self, _state: &mut WidgetState, event: &InputEvent) -> bool {
+        self.ab.input(event)
     }
 
     fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
@@ -141,6 +129,10 @@ impl IntroInner {
 }
 
 impl Widget for IntroInner {
+    fn load(&mut self, _state: &mut WidgetState, _stack: &mut ResourceStack) {}
+
+    fn update(&mut self, _state: &mut WidgetState) {}
+
     fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
         (LayoutSize::ZERO.expand_width().expand_height(), false)
     }

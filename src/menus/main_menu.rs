@@ -1,7 +1,7 @@
 use super::super::widgets::Nothing;
 
 use stacks::framework::widgets::layout::{
-    ContainerSize, Margin, MarginContainer, VContainer,
+    ContainerSize, Margin, MarginContainer, VContainerDyn,
 };
 use stacks::framework::widgets::shapes::Rectangle;
 use stacks::framework::widgets::{
@@ -9,7 +9,9 @@ use stacks::framework::widgets::{
 };
 use stacks::prelude::*;
 
-pub struct MainMenu {}
+pub struct MainMenu {
+    child: Wrap<Backgrounded<Rectangle, MarginContainer<VContainerDyn>>>,
+}
 
 impl MainMenu {
     pub fn new() -> Wrap<Self> {
@@ -23,36 +25,49 @@ impl MainMenu {
             Paint::new_color4f(1.0, 1.0, 1.0, 1.0).anti_alias(),
         );
 
-        let main = VContainer::new(
+        let mut main = VContainerDyn::new(
             ContainerSize::ZERO.expand_width().expand_height(),
             None,
-        )
-        .with_child(Nothing::new(LayoutSize::ZERO.expand_height()))
-        .with_child(logo)
-        .with_child(Nothing::new(LayoutSize::ZERO.expand_height()));
+        );
+        main.inner_mut()
+            .add_child(Nothing::new(LayoutSize::ZERO.expand_height()).to_dyn())
+            .add_child(logo.to_dyn())
+            .add_child(Nothing::new(LayoutSize::ZERO.expand_height()).to_dyn());
 
-        let main = MarginContainer::new(Margin::all(96.0)).with_child(main);
+        let main = MarginContainer::new(main, Margin::all(96.0));
 
         let background = Rectangle::new(
             LayoutSize::ZERO.expand_width().expand_height(),
             Paint::new_color4f(0.1, 0.3, 0.6, 1.0),
         );
-        let main = Backgrounded::new().with_child(background).with_child(main);
+        let child = Backgrounded::new(background, main, false);
 
-        Self {}.wrap().with_child(main)
+        Self { child }.into()
     }
 }
 
 impl Widget for MainMenu {
-    fn size(&mut self, state: &mut WidgetState) -> (LayoutSize, bool) {
-        state.child().unwrap().size()
+    fn load(&mut self, _state: &mut WidgetState, stack: &mut ResourceStack) {
+        self.child.load(stack);
     }
 
-    fn set_size(&mut self, state: &mut WidgetState, size: Size) {
-        state.child().unwrap().set_size(size);
+    fn update(&mut self, _state: &mut WidgetState) {
+        self.child.update();
     }
 
-    fn draw(&mut self, state: &mut WidgetState, canvas: &mut Canvas) {
-        state.child().unwrap().draw(canvas);
+    fn input(&mut self, _state: &mut WidgetState, event: &InputEvent) -> bool {
+        self.child.input(event)
+    }
+
+    fn size(&mut self, _state: &mut WidgetState) -> (LayoutSize, bool) {
+        self.child.size()
+    }
+
+    fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
+        self.child.set_size(size);
+    }
+
+    fn draw(&mut self, _state: &mut WidgetState, canvas: &mut Canvas) {
+        self.child.draw(canvas);
     }
 }
