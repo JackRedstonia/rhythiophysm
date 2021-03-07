@@ -74,6 +74,7 @@ impl Widget for ScreenStack {
             match i {
                 ScreenStackMessage::Add(w) => {
                     self.screens.push(w);
+                    self.just_switched = true;
                     FrameworkState::request_load();
                 }
                 ScreenStackMessage::Remove(id) => {
@@ -84,6 +85,7 @@ impl Widget for ScreenStack {
                     if screen.id() != id {
                         panic!("Inconsistent screen removal behaviour");
                     }
+                    self.just_switched = true;
                 }
             }
         }
@@ -105,7 +107,11 @@ impl Widget for ScreenStack {
             .last_mut()
             .map(|top| top.size())
             .unwrap_or_default();
-        (top_size.0, top_size.1 || self.just_switched)
+        let js = self.just_switched;
+        if js {
+            self.just_switched = false;
+        }
+        (top_size.0, top_size.1 || js)
     }
 
     fn set_size(&mut self, _state: &mut WidgetState, size: Size) {
