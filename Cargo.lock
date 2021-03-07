@@ -876,7 +876,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 [[package]]
 name = "stacks"
 version = "0.1.0"
-source = "git+https://gitlab.com/JackRedstonia/stacks#a0dd7cb1a63feaf1e2820ea65de8836a66a891f8"
+source = "git+https://gitlab.com/JackRedstonia/stacks#989766f03bbaf9a47c53cfd5591eeb8cf09ef57e"
 dependencies = [
  "skulpin-renderer",
  "skulpin-renderer-sdl2",
